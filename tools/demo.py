@@ -39,7 +39,12 @@ if args.resume:
 siammask.eval().to(device)
 
 # Parse Image file
-cap = cv2.VideoCapture(args.video)
+if args.video.isnumeric():
+    cap = cv2.VideoCapture(int(args.video))
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+else:
+    cap = cv2.VideoCapture(args.video)
 cap.set(1, args.start_frame)
 
 # Select ROI
@@ -59,8 +64,7 @@ while cap.isOpened():
 
 def _init():
     try:
-        init_rect = cv2.selectROI('SiamMask', frame, False, False)
-        x, y, w, h = init_rect
+        x, y, w, h = cv2.selectROI('SiamMask', frame, False, False)
         target_pos = np.array([x + w / 2, y + h / 2])
         target_sz = np.array([w, h])
         state = siamese_init(frame, target_pos, target_sz, siammask, cfg['hp'], device=device)  # init tracker
@@ -129,7 +133,7 @@ if __name__ == '__main__':
         mask = state['mask'] > state['p'].seg_thr
 
         result[:, :, 2] = (mask > 0) * 255 + (mask == 0) * result[:, :, 2]
-        cv2.polylines(result, [np.int0(location).reshape((-1, 1, 2))], True, (0, 255, 0), 3)
+        cv2.rectangle(result, cv2.boundingRect(np.uint8(mask)), (255, 0, 0))
         cv2.imshow('SiamMask', result)
         key = cv2.waitKey(1)
         if key > 0:
